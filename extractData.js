@@ -1,29 +1,73 @@
+/*
+* IMPORTS
+*/
 const glob = require("glob")
 const puppeteer = require('puppeteer');
 const fs = require('fs');
 
 
+/*
+* Writes string to given path.
+* @param {String} outputString
+* @param {String} path
+* @return {}
+*/
 function writeData(outputString, path) {
     fs.writeFile(path, outputString, function(err) {
       if(err) {
           return console.log(err);
       }
-      console.log("The file was saved!");
+      let message = "File " + path + " saved!"
+      console.log(message);
   });
 }
 
+/*
+* Creates a csv header counting 50 links
+* @param {}
+* @return {String} linkHeader
+*/
+function createLinkHeader() {
+    let linkHeader = []
+    for (let i = 1; i <= 50; i++){
+      linkHeader.push("Link" + i)
+    }
+    return(linkHeader.join(";"))
+}
+
+/*
+* Checks if a link includes domain name known for journalistic content
+* @param {String} link
+* @return {Boolean} linkIncludes
+*/
+function checkLinkIncludes(link) {
+    let links = ["sn-online.de", "ndr.de", "abendblatt.de", "br.de", "stuttgarter-nachrichten.de", "stern.de", "wp.de", "maz-online.de", "deutschlandfunk.de", "derwesten.de", "fr.de", "spiegel.de", "krautreporter.de", "bz-berlin.de", "donaukurier.de", "badische-zeitung.de", "berliner-zeitung.de", "neues-deutschland.de", "sueddeutsche.de", "fr-online", "faz.de", "bild.de", "zdf.de", "theguardian.com", "merkur.de", "stuttgarter-nachrichten.de", "dw.com", "augsburger-allgemeine.de", "tagesschau.de", "taz.de", "zeit.de", "tz.de", "welt.de", "focus.de", "landeszeitung.de", "waz.de", "tagblatt.de", "t-online.de", "rnd.de"]
+    let linkIncludes = false
+    for (let i = 0; i < links.length;  i++) {
+        if (link.includes(links[i])) {
+            linkIncludes = true
+        }
+    }
+    return(linkIncludes)
+}
+
+/*
+* Creates an outputstring (csv format) from the crawled output
+* @param {Object} output
+* @return {String} outputString
+*/
 function createOutputString(output) {
-    let outputString = "ID;Ergebnisse;Links;Journalistisch;Link1;Link2;Link3;Link4;Link5;Link6;Link7;Link8;Link9;Link10;Link11;Link12;Link13;Link14;Link15;Link16;Link17;Link18;Link19;Link20;Link21;Link22;Link23;Link24;Link25;Link26;Link27;Link28;Link29;Link30;Link31;Link32;Link33;Link34;Link35;Link36;Link37;Link38;Link39;Link40;Link41;Link42;Link43;Link44;Link45;Link46;Link47;Link48;Link49;Link50;"
+    let linkHeader = createLinkHeader()
+    let outputString = "ID;Ergebnisse;Links;Journalistisch;" + linkHeader
 
     for (let i = 0; i < output.length; i++) {
         let journalistic = 0
         for (let j = 0; j < output[i].links.length; j++) {
             let link = output[i].links[j]
-            if (link.includes("theguardian.com") || link.includes("merkur.de") || link.includes("stuttgarter-nachrichten.de") || link.includes("dw.com") || link.includes("augsburger-allgemeine.de") || link.includes("tagesschau.de") || link.includes("taz.de") || link.includes("zeit.de") || link.includes("tz.de") || link.includes("welt.de") || link.includes("focus.de") || link.includes("landeszeitung.de") || link.includes("waz.de") || link.includes("tagblatt.de") || link.includes("t-online.de") || link.includes("rnd.de") || link.includes("zdf.de") || link.includes("web.de/magazine") || link.includes("bild.de") || link.includes("faz.de") || link.includes("fr-online") || link.includes("sueddeutsche.de") || link.includes("neues-deutschland.de") || link.includes("berliner-zeitung.de") || link.includes("badische-zeitung.de") || link.includes("donaukurier.de") || link.includes("bz-berlin.de") || link.includes("spiegel.de") || link.includes("fr.de")|| link.includes("derwesten.de")|| link.includes("deutschlandfunk.de") || link.includes("maz-online.de") || link.includes("wp.de") || link.includes("stern.de") || link.includes("stuttgarter-nachrichten.de") || link.includes("br.de") || link.includes("abendblatt.de") || link.includes("ndr.de") || link.includes("sn-online.de")) {
+            if (checkLinkIncludes(link)) {
                 journalistic += 1
             }
         }
-
         // Create outputString
         let row = output[i].id + ";" + output[i].ergebnisse + ";" + output[i].links.length + ";" + journalistic + ";" + output[i].links.join(";")
         outputString = outputString + "\n" + row
@@ -31,6 +75,11 @@ function createOutputString(output) {
     return(outputString)
 }
 
+/*
+* Creates an array containing unique  links
+* @param {Array} names
+* @return {Array} targetFolders
+*/
 function findUniqueLinks(output) {
     let linklist = []
     for (let i = 0; i < output.length; i++) {
@@ -43,6 +92,12 @@ function findUniqueLinks(output) {
     return(uniqueLinks)
 }
 
+/*
+* Creates an outputstrinng (csv format) with counts for each unique link.
+* @param {Object} output
+* @param {Array} uniqueLinks
+* @return {String} outputString
+*/
 function countLinksForEachObservation(output, uniqueLinks) {
     let outputString = "ID;" + uniqueLinks.join(";")
     for (let i = 0; i < output.length; i++) {
@@ -63,24 +118,28 @@ function countLinksForEachObservation(output, uniqueLinks) {
   glob("data/*.html", async (er, files) => {
       const browser = await puppeteer.launch({headless: true});
       const page = await browser.newPage();
+      console.log("Processing:")
 
       // Check links for each file
       for (let i = 0; i < files.length; i++) {
-          console.log(files[i])
+          console.log("- " + files[i])
 
+          // TODO: hard coded !!!
           let path = "file:///C:/Users/clari/Desktop/Referat_Wikomm_online/" + files[i]
           await page.goto(path);
 
           let data = await page.evaluate(() => {
+              // Ergebnisse: Number of items found by google
               let ergebnisse = document.getElementById("resultStats").innerText.split(".").join("")
               ergebnisse = ergebnisse.match(/\d+/)[0]
 
-              // collect all links on page
+              // Collect all links on page
               let a = document.querySelectorAll("a")
               let links = []
               for (let i = 0; i < a.length; i++) {
                   let link = a[i].href
-                  if (!link.match(/google/) && link != "" && link != "https://www.iptc.org/" && link.substring(0,5) != "file:" && link !=  'https://www.youtube.com/results?gl=DE&tab=w10' && link != 'https://www.blogger.com/?tab=wj0') {
+                  // Links should not lead to google products
+                  if (!link.match(/google/) && link != "" && link != "https://www.iptc.org/" && link.substring(0,5) != "file:" && link !=  'https://www.youtube.com/results?gl=DE&tab=w10' && link != 'https://www.blogger.com/?tab=wj') {
                       links.push(link)
                   }
               }
@@ -96,7 +155,8 @@ function countLinksForEachObservation(output, uniqueLinks) {
           data.id = idString.substring(0, idString.length - 5);
           output.push(data)
       }
-      console.log(output)
+
+      console.log("\nCreating output...")
 
       let outputString = createOutputString(output)
       writeData(outputString, "data_per_observation.csv")
