@@ -4,6 +4,7 @@
 setwd("C:/Users/clari/Desktop/Referat_Wikomm_online")
 
 library(tidyverse)
+library(dplyr)
 library(tcR)
 library('plot.matrix')
 
@@ -35,7 +36,7 @@ ggplot(data_per_observation, aes(x=0, y=Links, color=ID, group=1)) +
 
 ##########################
 
-# Absolute Häuigkeiten der Links
+# Absolute HÃ¤uigkeiten der Links
 absoluteLinks <- data.frame(count = colSums(links_per_observation[,-1]))
 view(absoluteLinks)
 
@@ -51,12 +52,13 @@ ggplot(data_per_observation, aes(x= 0, y=Journalistisch/Links, color=ID, group=1
 
 ##########################
 
-# Übereinstimmende Suchergebnisse
-
+# Ãœbereinstimmende Suchergebnisse
+# Wir ignorieren der Einfachheit halber die Tatsache, dass ein und derselbe Link
+# mehrfach vorkommen kann!!!
 getJaccard <- function (a, b) {
   overlap <- length(intersect(a , b))
-  a <- length(a)
-  b <- length(b)
+  a <- length(intersect(a, a))
+  b <- length(intersect(b, b))
   jaccard <- (overlap) / (a + b - overlap)
   
   return(jaccard)
@@ -69,26 +71,31 @@ reducedDf$ID <- NULL
 reducedDf$Ergebnisse <- NULL
 reducedDf$Links <- NULL
 reducedDf$Journalistisch <- NULL
+view(reducedDf)
 
-similarity <- matrix(0, dim(reducedDf)[1], dim(reducedDf)[1])
+dims <- dim(reducedDf)[1]
+similarity <- matrix(0, dims, dims)
 
-for (i in 1:dim(reducedDf)[1]){
+for (i in 1:dims){
   rowA <- as.character(reducedDf[i,])
-  for (j in 1:dim(reducedDf)[1]){
-    if (i == j) {
-      similarity[i, j] <- 1
-    }
-    else {
+  for (j in 1:dims){
       rowB <- as.character(reducedDf[j,])
-      similarity[i, j] <- getJaccard(na.omit(rowA), na.omit(rowB))
-    }
+      rowA <- rowA[!is.na(rowA)]
+      rowB <- rowB[!is.na(rowB)]
+      similarity[i, j] <- getJaccard(rowA, rowB)
   }
 }
 
+similarity <- data.frame(similarity)
+colnames(similarity) <- c(ids)
+row.names(similarity) <- c(ids)
+dt2 <- similarity %>% rownames_to_column() %>%
+  gather(colname, value, -rowname)
+
 x11()
-par(bg = '#1c1c1c')
-par(mar=c(5.1, 4.1, 4.1, 4.1)) # adapt margins
-plot(xaxt="n", yaxt="n", ann=FALSE,  similarity, border=NA, digits=2, text.cell=list(cex=1), breaks=100, col=colorRampPalette(c("#ffffff","#1c1c1c"))(100), xlab="", ylab="", main="",  key=NULL)
-axis(1, at=1:dim(reducedDf)[1], labels=c(ids), col.axis="white")
-axis(2, at=1:dim(reducedDf)[1], labels=c(ids), col.axis="white")
-title(main = "Jaccard-Ähnlichkeit", col.main ="white")
+ggplot(dt2, aes(x = rowname, y = colname, fill = value)) +
+  geom_tile() +
+  xlab("") +
+  ylab("") +
+  ggtitle("Jaccard-Ã„hnlichkeit") 
+
