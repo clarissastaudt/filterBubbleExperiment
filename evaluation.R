@@ -25,7 +25,7 @@ ggplot(data_per_observation, aes(x= 0, y=Ergebnisse, color=ID, group=1)) +
   geom_point() +
   labs(title = "Boxplot der Anzahl der gefundenen Suchergebnisse", y = "Anzahl der gefundenen Suchergebnisse", x = "")
 
-##########################
+####################################################
 
 # Wie viele Ergebnisse auf der ersten Seite
 x11()
@@ -36,7 +36,7 @@ ggplot(data_per_observation, aes(x=0, y=Links, color=ID, group=1)) +
 
 ##########################
 
-# Absolute Häuigkeiten der Links
+# Absolute H�uigkeiten der Links
 absoluteLinks <- data.frame(count = colSums(links_per_observation[,-1]))
 view(absoluteLinks)
 
@@ -52,7 +52,7 @@ ggplot(data_per_observation, aes(x= 0, y=Journalistisch/Links, color=ID, group=1
 
 ##########################
 
-# Übereinstimmende Suchergebnisse
+# �bereinstimmende Suchergebnisse
 # Wir ignorieren der Einfachheit halber die Tatsache, dass ein und derselbe Link
 # mehrfach vorkommen kann!!!
 getJaccard <- function (a, b) {
@@ -97,5 +97,5 @@ ggplot(dt2, aes(x = rowname, y = colname, fill = value)) +
   geom_tile() +
   xlab("") +
   ylab("") +
-  ggtitle("Jaccard-Ähnlichkeit") 
+  ggtitle("Jaccard-�hnlichkeit") 
 
